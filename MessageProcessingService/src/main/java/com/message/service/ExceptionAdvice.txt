@@ -1,0 +1,112 @@
+package com.uprr.netcontrol.eqmt_mgmt.service.common.mvc.advice.exception;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import com.uprr.enterprise.security.mvc.exception.NotAuthenticatedException;
+import com.uprr.enterprise.security.trust.servlet3_0.RequestExpiredException;
+import com.uprr.netcontrol.eqmt_mgmt.service.common.exception.BadRequestException;
+import com.uprr.netcontrol.eqmt_mgmt.service.common.exception.NotAuthorizedException;
+import com.uprr.netcontrol.eqmt_mgmt.shared.invoker.exceptions.ServiceInvokerException;
+import com.uprr.netcontrol.eqmt_mgmt.shared.invoker.exceptions.ServiceTimeoutException;
+
+@ControllerAdvice
+public class ExceptionAdvice {
+
+  private static final int HTTP_STATUS_CODE_FOR_REQUEST_EXPIRED = 524;
+  private static final Logger LOG = LoggerFactory.getLogger(ExceptionAdvice.class);
+
+  @ExceptionHandler(ServiceInvokerException.class)
+  public ResponseEntity<Object> handleServiceInvokerException(final ServiceInvokerException ex, final HttpServletRequest request) {
+    final HttpHeaders headers = new HttpHeaders();
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).headers(headers).body(getFaultResponseFromException(ex, request, "Internal Server Error"));
+  }
+
+  @ExceptionHandler(ServiceTimeoutException.class)
+  public ResponseEntity<Object> handleServiceTimeoutException(final ServiceTimeoutException ex, final HttpServletRequest request) {
+    final HttpHeaders headers = new HttpHeaders();
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).headers(headers).body(getFaultResponseFromException(ex, request, "Internal Server Error"));
+  }
+
+  @ExceptionHandler(RuntimeException.class)
+  public ResponseEntity<Object> handleSystemException(final RuntimeException ex, final HttpServletRequest request) {
+    LOG.error(ex.getMessage(), ex);
+    final HttpHeaders headers = new HttpHeaders();
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).headers(headers).body(getFaultResponseFromException(ex, request, "Internal Server Error"));
+  }
+
+  @ExceptionHandler(NotAuthenticatedException.class)
+  public ResponseEntity<Object> handleAuthenticationException(final RuntimeException ex, final HttpServletRequest request) {
+    LOG.error(ex.getMessage(), ex);
+    final HttpHeaders headers = new HttpHeaders();
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).headers(headers).body(getFaultResponseFromException(ex, request, "Unauthorized"));
+  }
+
+  @ExceptionHandler(RequestExpiredException.class)
+  public ResponseEntity<Object> handleRequestExpiredException(final RuntimeException ex, final HttpServletRequest request) {
+    final HttpHeaders headers = new HttpHeaders();
+    // 524 http status is not in the Spring enum, HttpStatus. So we have to do it
+    // this way.
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HTTP_STATUS_CODE_FOR_REQUEST_EXPIRED).headers(headers).body(getFaultResponseFromException(ex, request, "Request Expired"));
+  }
+
+  @ExceptionHandler(BadRequestException.class)
+  public ResponseEntity<Object> handleBadClientInputException(final BadRequestException ex, final HttpServletRequest request) {
+    final HttpHeaders headers = new HttpHeaders();
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(headers).body(getFaultResponseFromException(ex, request, "Bad Request"));
+  }
+
+  @ExceptionHandler(NotAuthorizedException.class)
+  public ResponseEntity<Object> handleAuthorizationException(final NotAuthorizedException ex, final HttpServletRequest request) {
+    LOG.error(ex.getMessage(), ex);
+
+    final HttpHeaders headers = new HttpHeaders();
+    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+    }
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).headers(headers).body(getFaultResponseFromException(ex, request, "Forbidden"));
+
+  }
+
+//  @ExceptionHandler(CsnNotFoundException.class)
+//  public ResponseEntity<Object> handleNotFoundException(final CsnNotFoundException ex, final HttpServletRequest request) {
+//    LOG.error(ex.getMessage(), ex);
+//
+//    final HttpHeaders headers = new HttpHeaders();
+//    if (request.getHeader(HttpHeaders.CONTENT_ENCODING) != null) {
+//      headers.add(HttpHeaders.CONTENT_ENCODING, request.getHeader(HttpHeaders.CONTENT_ENCODING));
+//    }
+//    return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).body(getFaultResponseFromException(ex, request, "Not Found"));
+//
+//  }
+
+  private Object getFaultResponseFromException(final RuntimeException ex, final HttpServletRequest servletRequest, final String code) {
+    return ErrorHelpers.createFaultResponseJaxbFromException(ex, code);
+  }
+
+}
